@@ -53,15 +53,15 @@
 #include <time.h>
 
 
-#define DISPLAY_INTERVAL 600     // No of timesteps after which to update display
-#define VIDEO_INTERVAL 1        // No of display steps after which to write a frame to video. 
+int DISPLAY_INTERVAL = 600;     // No of timesteps after which to update display
+int VIDEO_INTERVAL = 1;         // No of display steps after which to write a frame to video. 
 // For example, if timestep = 0.01 seconds, DISPLAY_INTERVAL = 600 and VIDEO_INTERVAL=10,
 // one frame of the output video will correspond to 0.01*600*10 = 60 seconds
 
 const char* folder_name = "./";  // Folder (must be created beforehand) where the output csv and video files will be written.
 
 char* csv_filename = (char *)malloc(sizeof(char) * 300);
-char* outputFilename = (char *)malloc(sizeof(char) * 300);
+char* video_filename = (char *)malloc(sizeof(char) * 300);
 const uint width = 1920 , height = 1080;
 
 FILE *fp;
@@ -250,7 +250,7 @@ void DeleteFramebuffer( GLuint& framebuffer )
 
 void Postprocess()
 {
-  PostprocessCUDA( g_CUDAGraphicsResource[DST_BUFFER], g_CUDAGraphicsResource[SRC_BUFFER], g_iImageWidth, g_iImageHeight, VIDEO_INTERVAL, outputFilename );
+  PostprocessCUDA( g_CUDAGraphicsResource[DST_BUFFER], g_CUDAGraphicsResource[SRC_BUFFER], g_iImageWidth, g_iImageHeight, VIDEO_INTERVAL, video_filename );
 }
 
 void DisplayImage( GLuint texture, unsigned int x, unsigned int y, unsigned int width, unsigned int height )
@@ -591,6 +591,232 @@ void cleanup()
   fclose(fp);
 }
 
+void setParam(std::string param, std::string value) {
+	if (strncmp(param.c_str(), "camera_y", 8) == 0) {
+		camera_y = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "camera_x", 8) == 0) {
+		camera_x = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "nobstacles", 11) == 0) {
+		params.nobstacles = strtol(value.c_str(), NULL, 10);
+		free(params.x1obs);
+		free(params.x2obs);
+		free(params.y1obs);
+		free(params.y2obs);
+		params.x1obs = (float *)malloc((params.nobstacles ? params.nobstacles:1) * sizeof(float));
+		params.x2obs = (float *)malloc((params.nobstacles ? params.nobstacles : 1) * sizeof(float));
+		params.y1obs = (float *)malloc((params.nobstacles ? params.nobstacles : 1) * sizeof(float));
+		params.y2obs = (float *)malloc((params.nobstacles ? params.nobstacles : 1) * sizeof(float));
+	}
+	else if (strncmp(param.c_str(), "x1obs", 5) == 0) {
+		std::string::size_type sz;
+		for (int i = 0; i < params.nobstacles; i++) {
+			if(i)
+				value = value.substr(sz);
+			*(params.x1obs + i) = std::stof(value, &sz);
+		}
+	}
+	else if (strncmp(param.c_str(), "x2obs", 5) == 0) {
+		std::string::size_type sz;
+		for (int i = 0; i < params.nobstacles; i++) {
+			if (i)
+				value = value.substr(sz);
+			*(params.x2obs + i) = std::stof(value, &sz);
+		}
+	}
+	else if (strncmp(param.c_str(), "y1obs", 5) == 0) {
+		std::string::size_type sz;
+		for (int i = 0; i < params.nobstacles; i++) {
+			if (i)
+				value = value.substr(sz);
+			*(params.y1obs + i) = std::stof(value, &sz);
+		}
+	}
+	else if (strncmp(param.c_str(), "y2obs", 5) == 0) {
+		std::string::size_type sz;
+		for (int i = 0; i < params.nobstacles; i++) {
+			if (i)
+				value = value.substr(sz);
+			*(params.y2obs + i) = std::stof(value, &sz);
+		}
+	}
+	else if (strncmp(param.c_str(), "n_cir_obstacles", 15) == 0) {
+		params.n_cir_obstacles = strtol(value.c_str(), NULL, 10);
+		free(params.x_cir_obs);
+		free(params.y_cir_obs);
+		free(params.r_cir_obs);
+		params.x_cir_obs = (float *)malloc((params.n_cir_obstacles ? params.n_cir_obstacles : 1) * sizeof(float));
+		params.y_cir_obs = (float *)malloc((params.n_cir_obstacles ? params.n_cir_obstacles : 1) * sizeof(float));
+		params.r_cir_obs = (float *)malloc((params.n_cir_obstacles ? params.n_cir_obstacles : 1) * sizeof(float));
+	}
+	else if (strncmp(param.c_str(), "x_cir_obs", 5) == 0) {
+		std::string::size_type sz;
+		for (int i = 0; i < params.n_cir_obstacles; i++) {
+			if (i)
+				value = value.substr(sz);
+			*(params.x_cir_obs + i) = std::stof(value, &sz);
+		}
+	}
+	else if (strncmp(param.c_str(), "y_cir_obs", 5) == 0) {
+		std::string::size_type sz;
+		for (int i = 0; i < params.n_cir_obstacles; i++) {
+			if (i)
+				value = value.substr(sz);
+			*(params.y_cir_obs + i) = std::stof(value, &sz);
+		}
+	}
+	else if (strncmp(param.c_str(), "r_cir_obs", 5) == 0) {
+		std::string::size_type sz;
+		for (int i = 0; i < params.n_cir_obstacles; i++) {
+			if (i)
+				value = value.substr(sz);
+			*(params.r_cir_obs + i) = std::stof(value, &sz);
+		}
+	}
+	else if (strncmp(param.c_str(), "min_radius", 10) == 0) {
+		params.min_radius = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "max_radius", 10) == 0) {
+		params.max_radius = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "centroid_int", 12) == 0) {
+		params.centroid_int = strtol(value.c_str(), NULL, 10);
+	}
+	else if (strncmp(param.c_str(), "centroid_radius", 15) == 0) {
+		params.centroid_radius = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "centroid_steps", 14) == 0) {
+		params.centroid_steps = strtol(value.c_str(), NULL, 10);
+	}
+	else if (strncmp(param.c_str(), "radFactor", 9) == 0) {
+		params.radFactor = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "massFactor", 10) == 0) {
+		params.massFactor = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "frictionFactor", 14) == 0) {
+		params.frictionFactor = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "attractionFactor", 16) == 0) {
+		params.attractionFactor = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "dump_interval", 13) == 0) {
+		dump_interval = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "sort_interval", 13) == 0) {
+		sort_interval = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "testing", 7) == 0) {
+		params.testing = strtol(value.c_str(), NULL, 10);
+	}
+	else if (strncmp(param.c_str(), "friction", 8) == 0) {
+		params.friction = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "spring", 6) == 0) {
+		params.spring = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "damping", 7) == 0) {
+		params.damping = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "shear", 5) == 0) {
+		params.shear = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "constraint", 10) == 0) {
+		params.constraint = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "constrained_contraction", 23) == 0) {
+		params.constrained_contraction = strtol(value.c_str(), NULL, 10);
+	}
+	else if (strncmp(param.c_str(), "constraint_contraction", 22) == 0) {
+		params.constraint_contraction = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "attraction", 10) == 0) {
+		params.attraction = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "boundaryDamping", 15) == 0) {
+		params.boundaryDamping = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "gravity", 7) == 0) {
+		params.gravity = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "nCells", 6) == 0) {
+		params.nCells = strtol(value.c_str(), NULL, 10);
+	}
+	else if (strncmp(param.c_str(), "nDead", 5) == 0) {
+		params.nDead = strtol(value.c_str(), NULL, 10);
+	}
+	else if (strncmp(param.c_str(), "time_to_dead", 14) == 0) {
+		params.time_to_dead = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "max_time", 8) == 0) {
+		params.max_time = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "seed", 4) == 0) {
+		params.seed = strtol(value.c_str(), NULL, 10);
+	}
+	else if (strncmp(param.c_str(), "light_radius", 12) == 0) {
+		light_radius = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "light_x", 7) == 0) {
+		params.light_x = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "light_y", 7) == 0) {
+		params.light_y = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "timestep", 8) == 0) {
+		timestep = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "light_shadow", 12) == 0) {
+		params.light_shadow = strtol(value.c_str(), NULL, 10);
+	}
+	else if (strncmp(param.c_str(), "csv_filename", 12) == 0) {
+		sprintf(csv_filename, "%s", value.c_str());
+	}
+	else if (strncmp(param.c_str(), "video_filename", 14) == 0) {
+		sprintf(video_filename, "%s", value.c_str());
+	}
+	else if (strncmp(param.c_str(), "rise_period", 11) == 0) {
+		params.rise_period = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "phase_std", 9) == 0) {
+		params.phase_std = strtof(value.c_str(), NULL);
+	}
+	else if (strncmp(param.c_str(), "display_shadow", 14) == 0) {
+		params.display_shadow = strtol(value.c_str(), NULL, 10);
+	}
+	else if (strncmp(param.c_str(), "phase_update_interval", 21) == 0) {
+		params.phase_update_interval = strtol(value.c_str(), NULL, 10);
+	}
+	else if (strncmp(param.c_str(), "Nx", 2) == 0) {
+		params.Nx = strtol(value.c_str(), NULL, 10);
+	}
+	else if (strncmp(param.c_str(), "config", 6) == 0) {
+		if (strncmp(param.c_str(), "CONFIG_RANDOM", 13) == 0)
+			params.config = CONFIG_RANDOM;
+		if (strncmp(param.c_str(), "CONFIG_GRID", 11) == 0)
+			params.config = CONFIG_GRID;
+		if (strncmp(param.c_str(), "CONFIG_BLOB", 11) == 0)
+			params.config = CONFIG_BLOB;
+		if (strncmp(param.c_str(), "CONFIG_BLOB_UPLEFT", 18) == 0)
+			params.config = CONFIG_BLOB_UPLEFT;
+		if (strncmp(param.c_str(), "CONFIG_HEX", 10) == 0)
+			params.config = CONFIG_HEX;
+		if (strncmp(param.c_str(), "CONFIG_LINE", 11) == 0)
+			params.config = CONFIG_LINE;
+		if (strncmp(param.c_str(), "CONFIG_LIGHTTEST_7", 18) == 0)
+			params.config = CONFIG_LIGHTTEST_7;
+	}
+	else if (strncmp(param.c_str(), "DISPLAY_INTERVAL", 16) == 0) {
+		DISPLAY_INTERVAL = strtol(value.c_str(), NULL, 10);
+	}
+	else if (strncmp(param.c_str(), "VIDEO_INTERVAL", 14) == 0) {
+		VIDEO_INTERVAL = strtol(value.c_str(), NULL, 10);
+	}
+}
+
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // Program main
 ////////////////////////////////////////////////////////////////////////////////
@@ -601,25 +827,21 @@ main(int argc, char **argv)
   setenv("DISPLAY", ":0", 0);
 #endif
 
-  //srand((unsigned)time(NULL)); // set it to specific int for reproducible results
-
   std::atexit(cleanup);
 
   // quadrilateral obstacle
-  params.nobstacles = 0;    //max 10 for now
+  params.nobstacles = 0; 
 
-  params.x1obs = (float *)malloc(10*sizeof(float));
-  params.x2obs = (float *)malloc(10*sizeof(float));
-  params.y1obs = (float *)malloc(10*sizeof(float));
-  params.y2obs = (float *)malloc(10*sizeof(float));
+  params.x1obs = (float *)malloc(1*sizeof(float));
+  params.x2obs = (float *)malloc(1*sizeof(float));
+  params.y1obs = (float *)malloc(1*sizeof(float));
+  params.y2obs = (float *)malloc(1*sizeof(float));
 
   // circular obstacle
-  params.n_cir_obstacles = 0;    // max 10 for now
-
-  params.x_cir_obs = (float *)malloc(10 * sizeof(float));
-  params.y_cir_obs = (float *)malloc(10 * sizeof(float));
-  params.r_cir_obs = (float *)malloc(10 * sizeof(float));
-
+  params.n_cir_obstacles = 0;
+  params.x_cir_obs = (float *)malloc(1 * sizeof(float));
+  params.y_cir_obs = (float *)malloc(1 * sizeof(float));
+  params.r_cir_obs = (float *)malloc(1 * sizeof(float));
 
   params.min_radius = 0.0775;
   params.max_radius = 0.1175;
@@ -643,145 +865,35 @@ main(int argc, char **argv)
   params.boundaryDamping = -1.0f;
   params.gravity = 9.81*0.566f;
 
-  camera_y = 35;
+  camera_y = 10;
+  camera_x = 0;
   light_radius = 0.25f;
   timestep = 0.01f;
-  params.nCells = 11;
+  params.nCells = 501;
   params.nDead = -1; // -1 for carrying mass
 
   // Multiplicative Factors for radius, mass and friction of object to be carried
   // Only Used in nDead == -1
-  params.radFactor = 0.2;
+  params.radFactor = 2.0;
   params.massFactor = 1.0;
   params.frictionFactor = 1.0;
   params.attractionFactor = 0.0f;
   params.time_to_dead = 0;
-  params.max_time = 720.0;//9 *60*60; //in seconds
+
+  params.max_time = 6400.0;//9 *60*60; //in seconds
   params.seed = (unsigned)time(NULL);
 
   int cont = 0; //1 is continue existing experiment based on output name
 
-  float gap_pct = 0;
-  float max_pack = 16.449;
-  float light_fact = 3.0;
-
-  //mass study
-  /*if (argc > 1) {
-    params.seed = (unsigned)strtol(argv[1], NULL, 10);
-    if (argc > 2) {
-    params.nCells = strtol(argv[2], NULL, 10);
-    if (argc > 3) {
-    params.radFactor = strtof(argv[3], NULL);
-    if (argc > 4) {
-    params.frictionFactor = strtof(argv[4], NULL);
-    }
-    }
-    }
-    }*/
-
-
-  //gap study
-  if (argc > 1) {
-    params.seed = (unsigned)strtol(argv[1], NULL, 10);
-    if (argc > 2) {
-      params.nCells = strtol(argv[2], NULL, 10);
-      if (argc > 3) {
-        light_fact = strtof(argv[3], NULL);
-        if (argc > 4) {
-          gap_pct = strtof(argv[4], NULL);
-        }
-      }
-    }
-  }
-  
-
-  
-  srand(params.seed);
-  //set packing diameter in meters
-  if (params.nCells <= 11)
-    {
-      max_pack = 0.591;
-      light_fact = 16;
-    }
-  else if (params.nCells <= 101)
-    {
-      max_pack = 1.718;
-      light_fact = 8;
-    }
-  else if (params.nCells <= 1001)
-    {
-      max_pack = 5.264;
-      light_fact = 4;
-    }
-  else if (params.nCells <= 10001)
-    {
-      max_pack = 16.449;
-      light_fact = 2;
-    }
-  if (gap_pct > 0)
-    {
-      params.nobstacles = 2;
-
-      *(params.x1obs) = -max_pack*0.75 - params.min_radius * 2;
-      *(params.x2obs) = -max_pack*0.75;
-      *(params.y1obs) = max_pack*gap_pct / 200;
-      *(params.y2obs) = 500.0f;
-
-      *(params.x1obs + 1) = -max_pack*0.75 - params.min_radius * 2;
-      *(params.x2obs + 1) = -max_pack*0.75;
-      *(params.y1obs + 1) = -500.0f;
-      *(params.y2obs + 1) = -max_pack*gap_pct / 200;
-
-      params.light_x = -max_pack * light_fact;
-    }
-
-  if (params.radFactor < 1)
-    {
-      params.radFactor *= max_pack / (2 * params.min_radius);
-    }
-
-  params.light_x = -max_pack*3.5;
+  params.light_x = -5.0;
   params.light_y = 0;
-  camera_y = max_pack * light_fact;
-  camera_x = max_pack * 0;
 
   // 0 -> Obstacle does not affect light transmission
   // 1 -> Light is blocked by obstacles, cells in shadow
   //      modulate last
   // 2 -> Light is blocked by obstacles, cells in shadow
   //      do not modulate
-  params.light_shadow = 1;
-
-
-  char *temp_filename = (char *)malloc(sizeof(char) * 300);
-  sprintf(temp_filename, "mass2_N_%d_A_%g_M_%g_R_%g_F_%g_seed_%u",
-          params.nCells, params.attractionFactor, params.massFactor,
-          params.radFactor==1?params.radFactor:params.radFactor*2*params.min_radius/max_pack,
-          params.frictionFactor, params.seed);
-  if (params.attractionFactor)
-    sprintf(temp_filename, "gap_N_%d_pct_%f_seed_%u_display_int_600_int_10",
-            params.nCells, gap_pct, params.seed);
-  if (params.light_shadow == 0) {
-    sprintf(csv_filename, "%s%s_no_shadow.csv", folder_name, temp_filename);
-    if(cont)
-      sprintf(outputFilename, "%s%s_no_shadow_%d.avi", folder_name, temp_filename, cont);
-    else
-      sprintf(outputFilename, "%s%s_no_shadow.avi", folder_name, temp_filename);
-  }
-  if (params.light_shadow == 1) {
-    sprintf(csv_filename, "%s%s_modulate_last.csv", folder_name, temp_filename);
-    if(cont)
-      sprintf(outputFilename, "%s%s_modulate_last_%d.avi", folder_name, temp_filename, cont);
-    else
-      sprintf(outputFilename, "%s%s_modulate_last.avi", folder_name, temp_filename);
-  }
-  if (params.light_shadow == 2) {
-    sprintf(csv_filename, "%s%s_no_modulate.csv", folder_name, temp_filename);
-    if(cont)
-      sprintf(outputFilename, "%s%s_no_modulate_%d.avi", folder_name, temp_filename, cont);
-    else
-      sprintf(outputFilename, "%s%s_no_modulate.avi", folder_name, temp_filename);
-  }
+  params.light_shadow = 0;
 
   params.rise_period = 2;
   params.phase_std = 0.3f*params.rise_period;
@@ -795,17 +907,37 @@ main(int argc, char **argv)
 
   params.freq = 0.5f / 25;//
   
-  if (params.nDead == -1 && params.max_radius * 0.5 * params.radFactor > 2 * params.max_radius) {
-    params.cellSize.x = params.cellSize.y = params.max_radius * 0.5 * params.radFactor + 4 * params.max_radius;
-  }
-  else {
-    params.cellSize.x = params.cellSize.y = params.max_radius * 2;
-  }
-  params.gridSize.x = params.gridSize.y = 512;      //
+  sprintf(csv_filename, "particle_bot_output_data.csv");
+  sprintf(video_filename, "particle_bot_output_video.avi");
 
+  char* config_filename;
+  if (argc > 1)
+	  config_filename = argv[1];
+  else
+	  config_filename = (char *)"example.cfg";
+  std::ifstream config_file(config_filename);
+  std::string param_name;
+  std::string param_value;
+
+
+  while (std::getline(config_file, param_name)) {
+	  if (!(param_name.length() < 4 || strncmp(param_name.c_str(), "#", 1) == 0))
+		  if (std::getline(config_file, param_value)) {
+			  setParam(param_name, param_value);
+		  }
+  }
+  srand(params.seed);
+
+
+  if (params.nDead == -1 && params.max_radius * 0.5 * params.radFactor > 2 * params.max_radius)
+    params.cellSize.x = params.cellSize.y = params.max_radius * 0.5 * params.radFactor + 4 * params.max_radius;
+  else
+    params.cellSize.x = params.cellSize.y = params.max_radius * 2;
+
+  params.gridSize.x = params.gridSize.y = 512;
   params.numCells = params.gridSize.x*params.gridSize.y;
-  
   params.worldOrigin = make_float2(-64.0f, -64.0f);
+
   if (cont) {
     fp = fopen(csv_filename, "r");
   }
@@ -816,7 +948,6 @@ main(int argc, char **argv)
 
   initGL(&argc, argv);
   cudaGLInit(argc, argv);
-
 
   initParticlebotSystem();
 
